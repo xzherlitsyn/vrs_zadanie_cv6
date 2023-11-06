@@ -107,34 +107,46 @@ int main(void)
   MX_DMA_Init();
   MX_I2C1_Init();
   MX_USART2_UART_Init();
+
   /* USER CODE BEGIN 2 */
-  i2c_write_byte(0xBAU, 0x10U, 0x50);
+
+  struct hts221_init_config hts221_config;
+  hts221_config.hts221_read_data  = i2c_read_data;
+  hts221_config.hts221_write_data = i2c_write_data;
+  hts221_config.hts221_read_byte  = i2c_read_byte;
+  hts221_config.hts221_write_byte = i2c_write_byte;
+
+  hts221_config.avconf = HTS221_AVGT16 | HTS221_AVGH32;
+  hts221_config.ctrl1  = HTS221_CTRL1_POWER_UP              |
+		                 HTS221_CTRL1_BDU_CONTINUOUS_UPDATE |
+				         HTS221_CTRL1_OUTPUT_RATE_7HZ;
+  hts221_config.ctrl2  = HTS221_CTRL2_BOOT_NORMAL    |
+		                 HTS221_CTRL2_HEATER_DISABLE |
+						 HTS221_CTRL2_ONESHOT_WAIT;
+  hts221_config.ctrl3  = HTS221_CTRL3_DRDY_H   |
+		                 HTS221_CTRL3_PUSHPULL |
+						 HTS221_CTRL3_DRDY_DISABLE;
+
+  int result = hts221_init(hts221_config);
+
+  if (result != HTS221_ERROR_NONE)
+	  printf("error: hts221_init! code: %i\n\r", result);
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  if(i2c_read_byte(0xBAU, 0x0FU) == 0xB1U)
-		  printf("OK\n\r");
-	  else
-		  printf("NOT OK\n\r");
+	  if (result != HTS221_ERROR_NONE)
+		  printf("error: hts221_init! code: %i\n\r", result);
 
-	  uint8_t temp_out_l = i2c_read_byte(0xBAU, 0x2BU);
-	  uint8_t temp_out_h = i2c_read_byte(0xBAU, 0x2CU);
-	  int16_t temp = (temp_out_h << 8) | temp_out_l;
+	  float temp = hts221_temperature();
+	  float humidity = hts221_humidity();
 
-	  float temp_C = temp / 8.f;
+	  printf("teplota [°C]: %2.1f rel. vlhkosť [%%]: %2.0f\n\r", temp, humidity);
 
-	  printf("TEMP: %i (%i, %i): %f\n\r", temp, temp_out_h, temp_out_l, temp_C);
-
-	  uint8_t ctrl = i2c_read_byte(0xBAU, 0x10U);
-	  printf("CTRL: %u (should be: %u)\n\r", ctrl, 0x50);
-
-	  uint8_t status = i2c_read_byte(0xBAU, 0x27U);
-	  printf("STATUS: %i, H_DA: %i, T_DA: %i\n\r", status, status & (uint8_t)0x2U, status & (uint8_t)0x1U);
-
-	  LL_mDelay(1000);
+	  LL_mDelay(100);
 
     /* USER CODE END WHILE */
 
