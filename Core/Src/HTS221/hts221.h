@@ -86,4 +86,4 @@ void hts221_status(uint8_t *humidity_available, uint8_t *temperature_available);
 float hts221_humidity();
 float hts221_temperature();
 
-#endif
+#endif /* HTS221_H */

@@ -26,7 +26,9 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "HTS221/hts221.h"
+#include "LPS22HB/lps22hb.h"
 #include <stdio.h>
+#include <math.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -53,7 +55,7 @@
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
-
+float height(float t, float h, float p);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -132,6 +134,9 @@ int main(void)
   if (result != HTS221_ERROR_NONE)
 	  printf("error: hts221_init! code: %i\n\r", result);
 
+  i2c_write_byte(LPS22HB_DEVICE, 0x10U, 0x20);
+  i2c_write_byte(LPS22HB_DEVICE, 0x14U, 0x40);
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -144,7 +149,20 @@ int main(void)
 	  float temp = hts221_temperature();
 	  float humidity = hts221_humidity();
 
-	  printf("teplota [°C]: %2.1f rel. vlhkosť [%%]: %2.0f\n\r", temp, humidity);
+	  //if (i2c_read_byte(LPS22HB_DEVICE, LPS22HB_WHO_AM_I) == LPS22HB_WHO_AM_I_VALUE)
+	//	  printf("OK: %i (%i)\n\r", i2c_read_byte(LPS22HB_DEVICE, 0x10U), 0x20);
+	 // else
+	//	  printf("NOT OK\n\r");
+
+	  uint8_t press_out_xl = i2c_read_byte(LPS22HB_DEVICE, 0x28U);
+	  uint8_t press_out_l  = i2c_read_byte(LPS22HB_DEVICE, 0x29U);
+	  uint8_t press_out_h  = i2c_read_byte(LPS22HB_DEVICE, 0x2AU);
+	  uint32_t press = (press_out_h << 16) | (press_out_l << 8) | press_out_xl;
+	  //press /= 4096;
+
+	  //printf("pressure: %li (%li): %i %i %i\n\r", press, press / 4096, press_out_xl, press_out_l, press_out_h);
+	  printf("teplota [°C]: %2.1f rel. vlhkosť [%%]: %2.0f tlak vzduchu [hPa]: %4.2f relatívna výška od zeme [m]: %3.2f\n\r",
+			  temp, humidity, (float)press / 4096.0f, height(temp, humidity, (float)press / 4096.0f));
 
 	  LL_mDelay(100);
 
@@ -189,6 +207,51 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+float height(float t, float h, float p)
+{
+	//https://en.wikipedia.org/wiki/Atmospheric_pressure
+
+
+	float p0 = 101325;     // Sea level standard atmospheric pressure 101,325 Pa
+	float L	 = 0.00976;     // Temperature lapse rate, = g/cp for dry air ~ 0.00976 K/m
+	float cp = 1004.68506;  // Constant-pressure specific heat 1,004.68506 J/(kg·K)
+	float T0 = 288.16;      // Sea level standard temperature 288.16 K
+	float g  = 9.80665;     // Earth-surface gravitational acceleration 9.80665 m/s2
+	float M	 = 0.02896968;  // Molar mass of dry air 0.02896968 kg/mol
+	float R0 = 8.314462618; // Universal gas constant 8.314462618 J/(mol·K)
+
+	T0 = t + 273.15;
+
+	// Height above mean sea level m
+	return (-T0 * (pow((p * 100)/p0, (L * R0) / (g * M)) - 1)) / L;
+
+	/*
+	// Convert the air temperature to the Kelvin scale:
+	// Temperature in Kelvin (T) = Temperature in Celsius (°C) + 273.15
+	float T = t + 273.15;
+
+	// Convert the pressure from hPa to Pascals (Pa):
+	// Pressure in Pascals (P) = Pressure in hPa * 100
+	float P = p * 100;
+
+	// Calculate the saturation vapor pressure (e_s) using the temperature in Kelvin:
+	float e_s = 6.112 * exp((17.67 * T) / (T + 243.5));
+
+	// Calculate the actual vapor pressure (e) using the relative humidity (RH):
+	float e = (h / 100) * e_s;
+
+	// Use the ideal gas law to calculate the air density (ρ - rho):
+	float rho = (P / (287.05 * T)) * (1 + 0.61 * (1 - e / P));
+
+	// Calculate the scale height (H) based on temperature:
+	float H = (8.31432 * T) / (0.0289644 * 9.80665);
+
+	// Calculate the relative altitude (Z) above sea level:
+	float Z = -H * log(P / (rho * 101325));
+
+	return Z;*/
+}
 
 /* USER CODE END 4 */
 

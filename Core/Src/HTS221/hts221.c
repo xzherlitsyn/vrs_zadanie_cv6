@@ -63,8 +63,8 @@ float hts221_humidity()
 
 float hts221_temperature()
 {
-	uint8_t temp_out_l = i2c_read_byte(HTS221_DEVICE, HTS221_TEMP_OUT_L);
-	uint8_t temp_out_h = i2c_read_byte(HTS221_DEVICE, HTS221_TEMP_OUT_H);
+	uint8_t temp_out_l = hts221_read_byte(HTS221_DEVICE, HTS221_TEMP_OUT_L);
+	uint8_t temp_out_h = hts221_read_byte(HTS221_DEVICE, HTS221_TEMP_OUT_H);
 	int16_t temp = (temp_out_h << 8) | temp_out_l;
 	return (float)temp / 10.0f;
 }
