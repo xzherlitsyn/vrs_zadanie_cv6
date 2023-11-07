@@ -70,7 +70,7 @@
 
 struct hts221_init_config
 {
-	void    (*hts221_read_data)  (uint8_t, uint8_t, uint8_t*, uint8_t);
+	void    (*hts221_read_data)  (uint8_t, uint8_t*, uint8_t*, uint8_t);
 	int     (*hts221_write_data) (uint8_t, uint8_t, const uint8_t*, uint8_t);
 	uint8_t (*hts221_read_byte)  (uint8_t, uint8_t);
 	int     (*hts221_write_byte) (uint8_t, uint8_t, uint8_t);

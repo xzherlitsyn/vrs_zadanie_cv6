@@ -132,7 +132,7 @@ int main(int argc, char *argv[])
                 data_buffer[data_length++] = '\0';
                 
                 if (data_length > 2) {
-                   // printf("%s\n", data_buffer + 1);
+                    printf("%s\n", data_buffer + 1);
                     fprintf(data, "%i", rows);
 
                     float cell[4];

@@ -129,10 +129,35 @@ int main(void)
 		                 HTS221_CTRL3_PUSHPULL |
 						 HTS221_CTRL3_DRDY_DISABLE;
 
-  int result = hts221_init(hts221_config);
+  int hts221_result = hts221_init(hts221_config);
 
-  if (result != HTS221_ERROR_NONE)
-	  printf("error: hts221_init! code: %i\n\r", result);
+  struct lps22hb_init_config lps22hb_config;
+  lps22hb_config.lps22hb_read_data  = i2c_read_data;
+  lps22hb_config.lps22hb_write_data = i2c_write_data;
+  lps22hb_config.lps22hb_read_byte  = i2c_read_byte;
+  lps22hb_config.lps22hb_write_byte = i2c_write_byte;
+
+  lps22hb_config.interrupt_cfg = 0;
+  lps22hb_config.ths_p         = 0;
+  lps22hb_config.ctrl1         = LPS22HB_CTRL1_ODR_10HZ              |
+                                 LPS22HB_CTRL1_LPFP_DISABLE          |
+								 LPS22HB_CTRL1_LPFP_CFG_DISABLE      |
+								 LPS22HB_CTRL1_BDU_CONTINUOUS_UPDATE |
+								 LPS22HB_CTRL1_SPI_4WIRE;
+  lps22hb_config.ctrl2         = LPS22HB_CTRL2_BOOT_NORMAL            |
+                                 LPS22HB_CTRL2_FIFO_DISABLE           |
+								 LPS22HB_CTRL2_FIFO_WATERMARK_DISABLE |
+								 LPS22HB_CTRL2_FIFO_ADD_INC_ENABLE    |
+								 LPS22HB_CTRL2_I2C_ENABLE             |
+								 LPS22HB_CTRL2_SWRESET_NORMAL         |
+								 LPS22HB_CTRL2_ONESHOT_IDLE;
+  lps22hb_config.ctrl3         = 0;
+  lps22hb_config.fifo_ctrl     = 0;
+  lps22hb_config.ref_p         = 0;
+  lps22hb_config.rpds          = 0;
+  lps22hb_config.res_conf      = 0;
+
+  int lps22hb_result = lps22hb_init(lps22hb_config);
 
   i2c_write_byte(LPS22HB_DEVICE, 0x10U, 0x20);
   i2c_write_byte(LPS22HB_DEVICE, 0x14U, 0x40);
@@ -143,8 +168,11 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  if (result != HTS221_ERROR_NONE)
-		  printf("error: hts221_init! code: %i\n\r", result);
+	  if (hts221_result != HTS221_ERROR_NONE)
+		  printf("error: hts221_init! code: %i\n\r", hts221_result);
+
+	  if (lps22hb_result != HTS221_ERROR_NONE)
+		  printf("error: lps22hb_init! code: %i\n\r", lps22hb_result);
 
 	  float temp = hts221_temperature();
 	  float humidity = hts221_humidity();
@@ -212,8 +240,7 @@ float height(float t, float h, float p)
 {
 	//https://en.wikipedia.org/wiki/Atmospheric_pressure
 
-
-	float p0 = 101325;     // Sea level standard atmospheric pressure 101,325 Pa
+	float p0 = 101325;      // Sea level standard atmospheric pressure 101,325 Pa
 	float L	 = 0.00976;     // Temperature lapse rate, = g/cp for dry air ~ 0.00976 K/m
 	float cp = 1004.68506;  // Constant-pressure specific heat 1,004.68506 J/(kg·K)
 	float T0 = 288.16;      // Sea level standard temperature 288.16 K
@@ -225,32 +252,6 @@ float height(float t, float h, float p)
 
 	// Height above mean sea level m
 	return (-T0 * (pow((p * 100)/p0, (L * R0) / (g * M)) - 1)) / L;
-
-	/*
-	// Convert the air temperature to the Kelvin scale:
-	// Temperature in Kelvin (T) = Temperature in Celsius (°C) + 273.15
-	float T = t + 273.15;
-
-	// Convert the pressure from hPa to Pascals (Pa):
-	// Pressure in Pascals (P) = Pressure in hPa * 100
-	float P = p * 100;
-
-	// Calculate the saturation vapor pressure (e_s) using the temperature in Kelvin:
-	float e_s = 6.112 * exp((17.67 * T) / (T + 243.5));
-
-	// Calculate the actual vapor pressure (e) using the relative humidity (RH):
-	float e = (h / 100) * e_s;
-
-	// Use the ideal gas law to calculate the air density (ρ - rho):
-	float rho = (P / (287.05 * T)) * (1 + 0.61 * (1 - e / P));
-
-	// Calculate the scale height (H) based on temperature:
-	float H = (8.31432 * T) / (0.0289644 * 9.80665);
-
-	// Calculate the relative altitude (Z) above sea level:
-	float Z = -H * log(P / (rho * 101325));
-
-	return Z;*/
 }
 
 /* USER CODE END 4 */

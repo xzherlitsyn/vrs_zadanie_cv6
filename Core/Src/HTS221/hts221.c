@@ -2,7 +2,7 @@
 
 struct hts221_init_config config = {0};
 
-void    (*hts221_read_data)  (uint8_t, uint8_t, uint8_t*, uint8_t) = 0;
+void    (*hts221_read_data)  (uint8_t, uint8_t*, uint8_t*, uint8_t) = 0;
 int     (*hts221_write_data) (uint8_t, uint8_t, const uint8_t*, uint8_t) = 0;
 uint8_t (*hts221_read_byte)  (uint8_t, uint8_t) = 0;
 int     (*hts221_write_byte) (uint8_t, uint8_t, uint8_t) = 0;
@@ -54,17 +54,17 @@ void hts221_status(uint8_t *humidity_available, uint8_t *temperature_available)
 
 float hts221_humidity()
 {
-	uint8_t humidity_out_l = hts221_read_byte(HTS221_DEVICE, HTS221_HUMIDITY_OUT_L);
-	uint8_t humidity_out_h = hts221_read_byte(HTS221_DEVICE, HTS221_HUMIDITY_OUT_H);
-	int16_t humidity = (humidity_out_h << 8) | humidity_out_l;
+	uint8_t address[2] = {HTS221_HUMIDITY_OUT_L, HTS221_HUMIDITY_OUT_H};
+	int16_t humidity;
+	hts221_read_data(HTS221_DEVICE, address, (uint8_t*)&humidity, 2);
 	return (float)(((humidity / -327) + 100) / 2);
 }
 
 
 float hts221_temperature()
 {
-	uint8_t temp_out_l = hts221_read_byte(HTS221_DEVICE, HTS221_TEMP_OUT_L);
-	uint8_t temp_out_h = hts221_read_byte(HTS221_DEVICE, HTS221_TEMP_OUT_H);
-	int16_t temp = (temp_out_h << 8) | temp_out_l;
+	uint8_t address[2] = {HTS221_TEMP_OUT_L, HTS221_TEMP_OUT_H};
+	int16_t temp;
+	hts221_read_data(HTS221_DEVICE, address, (uint8_t*)&temp, 2);
 	return (float)temp / 10.0f;
 }

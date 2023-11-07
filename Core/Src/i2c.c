@@ -86,35 +86,37 @@ void MX_I2C1_Init(void)
 uint8_t *i2c_rx_data   = 0;
 uint8_t  i2c_rx_offset = 0;
 
-void i2c_read_data(uint8_t slave_address, uint8_t register_address, uint8_t *data, uint8_t len)
+void i2c_read_data(uint8_t slave_address, uint8_t *register_address, uint8_t *data, uint8_t len)
 {
 	// Enable It from I2C
 	LL_I2C_EnableIT_RX(I2C1);
-	// Initialize communication
-	LL_I2C_HandleTransfer(I2C1, slave_address, LL_I2C_ADDRSLAVE_7BIT, 1, LL_I2C_MODE_AUTOEND, LL_I2C_GENERATE_START_WRITE);
-	// Send register address
-	while(!LL_I2C_IsActiveFlag_STOP(I2C1))
-	{
-		if(LL_I2C_IsActiveFlag_TXIS(I2C1))
-		{
-			LL_I2C_TransmitData8(I2C1, register_address);
-		}
-	}
-
-	LL_I2C_ClearFlag_STOP(I2C1);
-	while(LL_I2C_IsActiveFlag_STOP(I2C1)){};
 
 	i2c_rx_data   = data;
 	i2c_rx_offset = 0;
 
-	// Receive data from slave device
-	LL_I2C_HandleTransfer(I2C1, slave_address, LL_I2C_ADDRSLAVE_7BIT, len, LL_I2C_MODE_AUTOEND, LL_I2C_GENERATE_START_READ);
-	while(!LL_I2C_IsActiveFlag_STOP(I2C1)){};
+	for (int i = 0; i < len; i++) {
+		// Initialize communication
+		LL_I2C_HandleTransfer(I2C1, slave_address, LL_I2C_ADDRSLAVE_7BIT, 1, LL_I2C_MODE_AUTOEND, LL_I2C_GENERATE_START_WRITE);
+		// Send register address
+		while(!LL_I2C_IsActiveFlag_STOP(I2C1))
+		{
+			if(LL_I2C_IsActiveFlag_TXIS(I2C1))
+				LL_I2C_TransmitData8(I2C1, register_address[i]);
+		}
 
-	//End of transfer
+		LL_I2C_ClearFlag_STOP(I2C1);
+		while(LL_I2C_IsActiveFlag_STOP(I2C1)){};
+
+		// Receive data from slave device
+		LL_I2C_HandleTransfer(I2C1, slave_address, LL_I2C_ADDRSLAVE_7BIT, 1, LL_I2C_MODE_AUTOEND, LL_I2C_GENERATE_START_READ);
+		while(!LL_I2C_IsActiveFlag_STOP(I2C1)){};
+
+		//End of transfer
+		LL_I2C_ClearFlag_STOP(I2C1);
+		LL_I2C_ClearFlag_NACK(I2C1);
+	}
+
 	LL_I2C_DisableIT_RX(I2C1);
-	LL_I2C_ClearFlag_STOP(I2C1);
-	LL_I2C_ClearFlag_NACK(I2C1);
 }
 
 // Maximum 255 byte
@@ -163,7 +165,7 @@ int i2c_write_data(uint8_t slave_address, uint8_t register_address, const uint8_
 uint8_t i2c_read_byte(uint8_t slave_address, uint8_t register_address)
 {
 	uint8_t byte;
-	i2c_read_data(slave_address, register_address, &byte, 1);
+	i2c_read_data(slave_address, &register_address, &byte, 1);
 	return byte;
 }
 
